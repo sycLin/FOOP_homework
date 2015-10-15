@@ -422,6 +422,22 @@ public class JoB {
 			}
 			return keepOrNot;
 		}
+
+		/**
+		 * sort the player's current hand by Bubble Sort.
+		 */
+		public void sortHand() {
+			for(int i=0; i<5; i++) {
+				for(int j=i+1; j<5; j++) {
+					if(this.hand[i].biggerThan(this.hand[j])) {
+						// swap
+						Card tmp = this.hand[i];
+						this.hand[i] = this.hand[j];
+						this.hand[j] = tmp;
+					}
+				}
+			}
+		}
 		
 	}
 
