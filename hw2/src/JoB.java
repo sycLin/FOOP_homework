@@ -311,6 +311,8 @@ public class JoB {
 				return;
 			}
 			int payoff = player.currentBet*this.payoffRatio[myHand];
+			if(payoff == 1250)
+				payoff = 4000; // the only exception in the payoff table
 			System.out.println("You get a " + handType[myHand] + " hand. The payoff is " + payoff + ".");
 			player.balance += payoff;
 			System.out.println("Your have " + player.balance + " P-dollars now.");
