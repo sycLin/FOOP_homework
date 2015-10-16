@@ -3,7 +3,7 @@ import java.util.Scanner;
 
 public class JoB {
 	public static void main(String argv[]) {
-		
+
 		// try to create an instance of Random Index
 		/*
 		RandomIndex test = new RandomIndex();
@@ -329,7 +329,8 @@ public class JoB {
 			// start to determine those flags
 			if(suits[0] == suits[1] && suits[0] == suits[2] && suits[0] == suits[3] && suits[0] == suits[4])
 				allSameSuit = true;
-			if(ranks[0] + 1 == ranks[1] && ranks[0] + 2 == ranks[2] && ranks[0] + 3 == ranks[3] && ranks[0] + 4 == ranks[4])
+			if((ranks[0] + 1 == ranks[1] && ranks[0] + 2 == ranks[2] && ranks[0] + 3 == ranks[3] && ranks[0] + 4 == ranks[4])
+				|| (ranks[0] == 2 && ranks[1] == 3 && ranks[2] == 4 && ranks[3] == 5 && ranks[4] == 14))
 				isSequential = true;
 			for(int i=0; i<5; i++)
 				if(ranks[i] > 9)
