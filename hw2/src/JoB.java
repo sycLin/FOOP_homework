@@ -3,8 +3,9 @@ import java.util.Scanner;
 
 public class JoB {
 	public static void main(String argv[]) {
-		System.out.println("Testing");
+		
 		// try to create an instance of Random Index
+		/*
 		RandomIndex test = new RandomIndex();
 		test.setSize(52);
 		test.initializeIndex();
@@ -19,9 +20,11 @@ public class JoB {
 			System.out.print(test.index[i] + " ");
 		}
 		System.out.print("\n");
-		Player p = new Player();
-		Card c = new Card("S", "K");
-		c.printCard(); // no new line in the end
+		*/
+
+		/* here's the true code */
+		POOCasino poocasino = new POOCasino();
+		poocasino.operate();
 	}
 
 	/**
@@ -44,9 +47,7 @@ public class JoB {
 		 */
 		public POOCasino() {
 			System.out.println("POOCasino Jacks or better, written by b01902044 Yu-Chih Lin");
-			System.err.println("starting up casino computer...");
 			casinoComputer = new Computer();
-			System.err.println("player initializing...");
 			casinoPlayer = new Player();
 		}
 
@@ -70,6 +71,7 @@ public class JoB {
 				// one round done!
 				casinoPlayer.roundCount += 1;
 			}
+			System.out.println("Good bye, " + casinoPlayer.name + ". You played for " + casinoPlayer.roundCount + " round and have " + casinoPlayer.balance + " P-dollars now.");
 		}
 	}
 
@@ -218,9 +220,13 @@ public class JoB {
 		 */
 		private Card[] deck;
 
+		/**
+		 * use RandomIndex.java to shuffle the deck
+		 */
+		private RandomIndex shuffler;
 
 		/**
-		 * Constructor: initialize a Computer instance
+		 * Constructor: initialize a Computer instance (not implemented actually)
 		 */
 		public Computer() {
 			// TODO: here?
@@ -263,7 +269,8 @@ public class JoB {
 				this.deck[i] = new Card(s, r);
 			}
 			// shuffle the deck
-			// TODO: here ...
+			this.shuffler = new RandomIndex();
+			this.shuffler.setSize(52);
 		}
 
 		/**
@@ -271,30 +278,94 @@ public class JoB {
 		 * @param player the player to distribute to
 		 */
 		public void distributeCard(Player player) {
-			// TODO: ...
-			;
+			for(int i=0; i<5; i++) {
+				player.hand[i] = this.deck[this.shuffler.getNext()];
+			}
 		}
 
 		/**
 		 * check if player wants to discard any cards; replace them.
+		 * display the new cards (if any) to player (to screen).
 		 * @param player the player to re-distribute cards.
 		 * @param keepOrNot an array of 5 booleans to indicate if keeping the card.
 		 */
 		public void redistributeCard(Player player, boolean[] keepOrNot) {
 			if(keepOrNot[0] && keepOrNot[1] && keepOrNot[2] && keepOrNot[3] && keepOrNot[4])
 				return; // player keeps all 5 cards
-			// TODO: ...
-			;
+			for(int i=0; i<5; i++) {
+				if(!keepOrNot[i]) {
+					player.hand[i] = this.deck[this.shuffler.getNext()];
+				}
+			}
+			player.sortHand();
+			System.out.print("Your new cards are");
+			for(int i=0; i<5; i++) {
+				System.out.print(" (" + Character.toString((char) (i+97)) + ") " + player.hand[i].toString());
+			}
+			System.out.println(""); // need a new line here
 		}
 
 		/**
 		 * determine the best hand of the player.
 		 * @param hand the 5 cards to determine.
-		 * @return  1, 2, ..., 10: representing "royal flush", "straight flush", ..., "other".
+		 * @return  0, 1, ..., 9: representing "royal flush", "straight flush", ..., "other".
 		 */
 		private int determineBestHand(Card[] hand) {
 			if(hand == null) return -1; // error
-			return 0;
+
+			// creat two arrays to prevent from calling methods too many times
+			int[] ranks = new int[5];
+			int[] suits = new int[5];
+			for(int i=0; i<5; i++) {
+				ranks[i] = hand[i].getIntRank();
+				suits[i] = hand[i].getIntSuit();
+			}
+
+			// create some flags to help us determine the best hand
+			boolean allSameSuit = false;
+			boolean isSequential = false;
+			int howManyGreaterThanNine = 0;
+
+			// start to determine those flags
+			if(suits[0] == suits[1] && suits[0] == suits[2] && suits[0] == suits[3] && suits[0] == suits[4])
+				allSameSuit = true;
+			if(ranks[0] + 1 == ranks[1] && ranks[0] + 2 == ranks[2] && ranks[0] + 3 == ranks[3] && ranks[0] + 4 == ranks[4])
+				isSequential = true;
+			for(int i=0; i<5; i++)
+				if(ranks[i] > 9)
+					howManyGreaterThanNine += 1;
+
+			// start to determine the best hand
+			if(allSameSuit && isSequential) { // => royal flush or straight flush
+				if(howManyGreaterThanNine == 5)
+					return 0; // royal flush
+				return 1; // straight flush
+			}
+			if((ranks[0] == ranks[1] && ranks[0] == ranks[2] && ranks[0] == ranks[3])
+				|| (ranks[1] == ranks[2] && ranks[1] == ranks[3] && ranks[1] == ranks[4]))
+				return 2; // four of a kind
+			if(ranks[0] == ranks[1] && ranks[3] == ranks[4] && (ranks[2] == ranks[0] || ranks[2] == ranks[4]))
+				return 3; // full house
+			if(allSameSuit)
+				return 4; // flush
+			if(isSequential)
+				return 5; // straight
+			if((ranks[0] == ranks[1] && ranks[0] == ranks[2])
+				|| (ranks[1] == ranks[2] && ranks[2] == ranks[3])
+				|| (ranks[2] == ranks[3] && ranks[3] == ranks[4]))
+				return 6; // three of a kind
+			if((ranks[0] == ranks[1] && ranks[2] == ranks[3])
+				|| (ranks[0] == ranks[1] && ranks[3] == ranks[4])
+				|| (ranks[1] == ranks[2] && ranks[3] == ranks[4]))
+				return 7; // two pair
+			int[] jacksOrBetter = new int[]{0, 0, 0, 0}; // to store the count of J, Q, K, and A, respectively.
+			for(int i=0; i<5; i++) {
+				if(ranks[i] > 10) {
+					if(jacksOrBetter[ranks[i]-11] == 1) return 8; // we found a second card of J, Q, K, or A.
+					else jacksOrBetter[ranks[i]-11] += 1; // found the first card of J, Q, K, or A.
+				}
+			}
+			return 9; // default: "other".
 		}
 
 		/**
@@ -364,7 +435,7 @@ public class JoB {
 			// some other instance variable initialization
 			this.roundCount = 0;
 			this.currentBet = 0;
-			System.err.println("successfully initialized player: " + this.name);
+			this.hand = new Card[5];
 			System.out.println("Welcome, " + this.name + ".");
 			System.out.println("You have 1000 P-dollars now.");
 		}
@@ -391,6 +462,8 @@ public class JoB {
 		 * @return  array of booleans to indicate keeping or not
 		 */
 		public boolean[] discardAnyCards() {
+			// sort the card first
+			this.sortHand();
 			// output the current hand with options
 			System.out.print("Your cards are");
 			for(int i=0; i<5; i++) {
@@ -419,8 +492,8 @@ public class JoB {
 					if(!keepOrNot[i]) {
 						System.out.print(" (" + Character.toString((char) (i+97)) + ") " + this.hand[i].toString());
 					}
-					System.out.println(".");
 				}
+				System.out.println(".");
 			}
 			return keepOrNot;
 		}
