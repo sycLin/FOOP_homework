@@ -312,7 +312,7 @@ public class JoB {
 		 */
 		private int determineBestHand(Card[] hand) {
 			if(hand == null) return -1; // error
-
+			if(hand.length != 5) return -1; // error
 			// creat two arrays to prevent from calling methods too many times
 			int[] ranks = new int[5];
 			int[] suits = new int[5];
