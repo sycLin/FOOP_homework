@@ -10,6 +10,14 @@ public class PlayGame {
 	}
 
 	/**
+	 * classic game of Old Maid Card Game, 
+	 * a base class for variants to extend.
+	 */
+	public static class OldMaidGame {
+		;
+	}
+
+	/**
 	 * Represent a card
 	 */
 	public static class Card {
