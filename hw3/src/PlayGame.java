@@ -1,12 +1,32 @@
 import java.lang.*;
-import java.util.Random; // for shuffling the deck
+import java.util.*;
 
 public class PlayGame {
 	/**
 	 * This is the main function
+	 * @param argv the arguments, array of string.
 	 */
 	public static void main(String argv[]) {
-		;
+		// choose what game to play
+		System.out.println("Which game to play?");
+		System.out.println("[0] Classic OldMaidGame");
+		System.out.println("[1] Variant #1");
+		System.out.println("[2] Variant #2");
+		Scanner scanner = new Scanner(System.in);
+		int whichGame = Integer.parseInt(scanner.nextLine());
+		// create the game
+		switch(whichGame) {
+			case 0:
+				OldMaidGame letsPlay = new OldMaidGame();
+				letsPlay.start();
+				break;
+			case 1:
+				System.out.println("not implemented yet...");
+				break;
+			case 2:
+				System.out.println("not implemented yet...");
+				break;
+		}
 	}
 
 	/**
@@ -14,31 +34,110 @@ public class PlayGame {
 	 * a base class for variants to extend.
 	 */
 	public static class OldMaidGame {
-		public Card[] deck;
+		public Deck deck;
 		public Player[] players;
 
 		/**
 		 * Constructor
 		 */
 		public OldMaidGame() {
-			// initialize the deck
-			deck = ;
+			// initialize the deck with 2 addition cards: jokers.
+			deck = new Deck();
+			deck.addCard("R", "0");
+			deck.addCard("B", "0");
 			// initialize the players
 			players = new Player[4];
+			for(int i=0; i<4; i++)
+				players[i] = new Player();
 		}
 
 		/**
 		 * Start the game
 		 */
 		public void start() {
-			;
+			// step1: shuffle the deck
+			this.deck.shuffle();
+			// step2: deal the cards
+			System.out.println("Deal cards");
+			int[] numOfCards = new int[4]; // number of cards each player gets
+			numOfCards[0] = numOfCards[1] = numOfCards[2] = this.deck.getSize()/4;
+			numOfCards[3] = this.deck.getSize() - (numOfCards[0] + numOfCards[1] + numOfCards[2]);
+			for(int i=0; i<4; i++) {
+				for(int j=0; j<numOfCards[i]; j++) {
+					Card c = this.deck.get(0);
+					players[i].addCard(c);
+					this.deck.remove(0);
+				}
+			}
+			for(int i=0; i<4; i++) {
+				System.out.println("Player" + i + ": " + players[i].getHandString());
+			}
+			// step3: initial drops of all players
+			System.out.println("Drop cards");
+			for(int i=0; i<4; i++)
+				players[i].drop();
+			for(int i=0; i<4; i++) {
+				System.out.println("Player" + i + ": " + players[i].getHandString());
+			}
+			// step4: main while-loop; break when 1 player left
+			System.out.println("Game start");
+			int playerTo = -1; // the player who draws
+			int playerFrom = 0; // the player to draw from
+			while(true) {
+				// check if game over, using this.isOver()
+				if(this.isOver()) {
+					System.out.println("Game Over");
+					break;
+				}
+				// determine the _playerTo_ and _playerFrom_
+				playerTo = playerFrom;
+				while(!players[playerTo].active)
+					playerTo = (playerTo + 1) % 4;
+				playerFrom = (playerTo + 1) % 4;
+				while(!players[playerFrom].active)
+					playerFrom = (playerFrom + 1) % 4;
+				// do the drawing
+				Card c = players[playerTo].draw(players[playerFrom]);
+				// output
+				System.out.println("Player" + playerTo + " draws a card from Player" + playerFrom + " " + c);
+				System.out.println("Player" + playerTo + ": " + players[playerTo].getHandString());
+				System.out.println("Player" + playerFrom + ": " + players[playerFrom].getHandString());
+			}
 		}
 
 		/**
 		 * check if the game is completely over
+		 * @return true if game is completely over; false otherwise.
 		 */
 		public boolean isOver() {
-			;
+			int how_many_winners = 0;
+			String output = "";
+			for(int i=0; i<4; i++) {
+				if(players[i].active) {
+					players[i].updateStatus();
+					if(!players[i].active) {
+						// this player is a new winner!
+						if(how_many_winners == 0) {
+							output = output + "Player" + i;
+						} else {
+							output = output + " and Player" + i;
+						}
+						how_many_winners += 1;
+					}
+				}
+			}
+			// just for output
+			if(how_many_winners == 1)
+				System.out.println(output + " wins");
+			else if(how_many_winners == 2)
+				System.out.println(output + " win");
+			// check how many active players, to determine if the game is over
+			int activePlayerCount = 0;
+			for(int i=0; i<4; i++)
+				if(players[i].active)
+					activePlayerCount += 1;
+			if(activePlayerCount == 1) return true; // the game is over.
+			return false; // the game is not yet over.
 		}
 	}
 
@@ -134,14 +233,232 @@ public class PlayGame {
 	 * A deck consists of cards
 	 */
 	public static class Deck {
-		;
+		public ArrayList<Card> cards;
+
+		/**
+		 * Constructor: no arguments given, then standard deck with 52 cards
+		 */
+		public Deck() {
+			cards = new ArrayList<Card>();
+			for(int i=0; i<52; i++) {
+				String s;
+				String r;
+				// deal with suit
+				if(i < 13) {
+					s = "C";
+				} else if(i < 26) {
+					s = "D";
+				} else if(i < 39) {
+					s = "H";
+				} else {
+					s = "S";
+				}
+				// deal with rank
+				if((i+1)%13 == 0)
+					r = "K";
+				else if((i+1)%13 == 12)
+					r = "Q";
+				else if((i+1)%13 == 11)
+					r = "J";
+				else if((i+1)%13 == 1)
+					r = "A";
+				else
+					r = Integer.toString((i+1)%13);
+				// create the card
+				Card newCard = new Card(s, r);
+				cards.add(newCard);
+			}
+		}
+
+		/**
+		 * get the size of the deck
+		 * @return the size of the deck
+		 */
+		public int getSize() {
+			return this.cards.size();
+		}
+
+		/**
+		 * add cards into the deck
+		 * @param s the suit of the card we'd like to add
+		 * @param r the rank of the card we'd like to add
+		 * @return true if added successfully; false, otherwise.
+		 */
+		public boolean addCard(String s, String r) {
+			Card newCard = new Card(s, r);
+			cards.add(newCard);
+			return true;
+		}
+
+		/**
+		 * remove cards from the deck
+		 * @param s the suit of the card we'd like to remove
+		 * @param r the rank of the card we'd like to remove
+		 * @return true if removed successfully; false, otherwise.
+		 */
+		public boolean removeCard(String s, String r) {
+			Card tmpCard = new Card(s, r);
+			for(int i=0; i<cards.size(); i++) {
+				if(!cards.get(i).smallerThan(tmpCard) && !cards.get(i).biggerThan(tmpCard)) {
+					cards.remove(cards.get(i));
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/**
+		 * get the card at the given index
+		 * @param index which card to get
+		 * @return the card wanted
+		 */
+		public Card get(int index) {
+			return this.cards.get(index);
+		}
+
+		/**
+		 * remove the card at the given index
+		 * @param index which card to remove
+		 */
+		public void remove(int index) {
+			this.cards.remove(index);
+		}
+
+		/**
+		 * Shuffle the deck
+		 */
+		public void shuffle() {
+			Collections.shuffle(this.cards);
+		}
 	}
 
 	/**
 	 * Player can be AI or real-man
 	 */
 	public static class Player {
-		;
+		public boolean active; // true if active; false otherwise.
+		public ArrayList<Card> cards; // the player's hand
+
+		/**
+		 * constructor: initialize the instance variables
+		 */
+		public Player() {
+			active = true;
+			cards = new ArrayList<Card>();
+		}
+
+		/**
+		 * add a card to the hand
+		 * @param c the card to be added to the player's hand.
+		 */
+		public void addCard(Card c) {
+			this.cards.add(c);
+		}
+
+		/**
+		 * remove a card from a designated position
+		 * @param pos position of the card to be removed
+		 * @return the card removed
+		 */
+		public Card removeCard(int pos) {
+			// check if _pos_ is out of bound
+			if(pos >= this.cards.size()) return null;
+			Card c = this.cards.get(pos);
+			this.cards.remove(pos);
+			return c;
+		}
+
+		/**
+		 * do the drawing
+		 * @param p the player to draw from
+		 * @return the card that's been drawn
+		 */
+		public Card draw(Player p) {
+			int how_many_cards = p.getHandCount();
+			int which_do_you_want = this.drawingStrategy(how_many_cards);
+			Card c = p.removeCard(which_do_you_want);
+			this.addCard(c);
+			this.drop();
+			return c;
+		}
+
+		/**
+		 * the default drawing strategy is pure random strategy.
+		 * welcome to override this ^_^
+		 * @param totalCount the total number of cards to choose from
+		 * @return integer indicating the index of the card we want
+		 */
+		public int drawingStrategy(int totalCount) {
+			// generate a random number
+			Random ran = new Random();
+			return ran.nextInt(totalCount);
+		}
+
+		/**
+		 * check the hand, and drop cards if necessary
+		 */
+		public void drop() {
+			this.sortHand(); // just to make sure the hand is sorted
+			for(int i=0; (i+1)<this.cards.size(); i++) {
+				int r1 = this.cards.get(i).getIntRank();
+				int r2 = this.cards.get(i+1).getIntRank();
+				if(r1 == r2 && r1 != 0) {
+					this.cards.remove(i);
+					this.cards.remove(i);
+					i -= 1; // to neutralize the effect of: i++
+				}
+			}
+		}
+
+		/**
+		 * upadte the _active_ boolean instance variable
+		 */
+		public void updateStatus() {
+			// just in case
+			this.sortHand();
+			this.drop();
+			// check hand
+			if(this.cards.size() == 0)
+				this.active = false; // win
+		}
+
+		/**
+		 * sort the player's current hand
+		 */
+		public void sortHand() {
+			// utilize bubble sort
+			for(int i=0; i<this.cards.size(); i++) {
+				for(int j=i+1; j<this.cards.size(); j++) {
+					if(cards.get(i).biggerThan(cards.get(i))) {
+						Collections.swap(cards, i, j);
+					}
+				}
+			}
+		}
+
+		/**
+		 * get a string representation of the player's hand
+		 * @return a string representation of the hand
+		 */
+		public String getHandString() {
+			// if no cards, return empty string
+			if(this.cards.size() == 0) return "";
+			// return the string of concatenating card strings
+			String buf = "";
+			for(int i=0; i<this.cards.size()-1; i++) {
+				buf += this.cards.get(i).toString() + " ";
+			}
+			buf += this.cards.get(this.cards.size()-1).toString();
+			return buf;
+		}
+
+		/**
+		 * get the number of cards the player has
+		 * @return how many cards the player has
+		 */
+		public int getHandCount() {
+			return this.cards.size();
+		}
 	}
 
 }
