@@ -14,7 +14,32 @@ public class PlayGame {
 	 * a base class for variants to extend.
 	 */
 	public static class OldMaidGame {
-		;
+		public Card[] deck;
+		public Player[] players;
+
+		/**
+		 * Constructor
+		 */
+		public OldMaidGame() {
+			// initialize the deck
+			deck = ;
+			// initialize the players
+			players = new Player[4];
+		}
+
+		/**
+		 * Start the game
+		 */
+		public void start() {
+			;
+		}
+
+		/**
+		 * check if the game is completely over
+		 */
+		public boolean isOver() {
+			;
+		}
 	}
 
 	/**
