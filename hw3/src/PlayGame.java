@@ -15,18 +15,27 @@ public class PlayGame {
 		System.out.print("Your choice > ");
 		Scanner scanner = new Scanner(System.in);
 		int whichGame = Integer.parseInt(scanner.nextLine());
+		// whether change the default number of players
+		System.out.println("Set the number of players: (enter 0 for default)");
+		System.out.print("> ");
+		int playerNum = Integer.parseInt(scanner.nextLine());
+		// whether human player
+		System.out.println("Do you wanna create a human player?");
+		System.out.print("[Y/N] > ");
+		String input = scanner.nextLine();
+		boolean humanOrNot = input.equals("Y");
 		// create the game
 		switch(whichGame) {
 			case 0:
-				OldMaidGame letsPlay = new OldMaidGame();
+				OldMaidGame letsPlay = new OldMaidGame(playerNum, humanOrNot);
 				letsPlay.start();
 				break;
 			case 1:
-				Var1 letsPlayVar1 = new Var1();
+				Var1 letsPlayVar1 = new Var1(playerNum, humanOrNot);
 				letsPlayVar1.start();
 				break;
 			case 2:
-				Var2 letsPlayVar2 = new Var2();
+				Var2 letsPlayVar2 = new Var2(playerNum, humanOrNot);
 				letsPlayVar2.start();
 				break;
 		}
@@ -51,17 +60,21 @@ class OldMaidGame {
 	public OldMaidGame() {
 		this.playerCount = 4;
 		initDeck();
-		initPlayers();
+		initPlayers(false);
 	}
 
 	/**
 	 * Another constructor: given number of players
 	 * @param playerNum how many player (integer)
+	 * @param human set to true if 1 human player; false if all AI.
 	 */
-	public OldMaidGame(int playerNum) {
-		this.playerCount = playerNum;
+	public OldMaidGame(int playerNum, boolean human) {
+		if(playerNum <= 0) // using default
+			this.playerCount = 4;
+		else
+			this.playerCount = playerNum;
 		initDeck();
-		initPlayers();
+		initPlayers(human);
 	}
 
 	/**
@@ -75,12 +88,15 @@ class OldMaidGame {
 
 	/**
 	 * initialize the players according to this.playerCount.
+	 * @param human set to true if 1 human player; false if all AI.
 	 */
-	public void initPlayers() {
+	public void initPlayers(boolean human) {
 		this.players = new Player[this.playerCount];
 		for(int i=0; i<this.playerCount; i++) {
 			this.players[i] = new Player();
 		}
+		if(human)
+			this.players[0] = new HumanPlayer();
 	}
 
 	/**
@@ -510,5 +526,30 @@ class Player {
 	 */
 	public int getHandCount() {
 		return this.cards.size();
+	}
+}
+
+/**
+ * human player
+ */
+class HumanPlayer extends Player {
+	/**
+	 * ask for human player's input instead of pure random strategy
+	 * @param totalCount the total number of cards to choose from
+	 * @return integer indicating the index of the card we want
+	 */
+	@Override
+	public int drawingStrategy(int totalCount) {
+		System.out.println("There are " + totalCount + " cards you can choose from.");
+		System.out.print("Which one do you like[0-" + (totalCount - 1) + "]: ");
+		Scanner scanner = new Scanner(System.in);
+		int whichCard = Integer.parseInt(scanner.nextLine());
+		while(whichCard < 0 || whichCard >= totalCount) {
+			System.out.println("Illegal input...");
+			System.out.println("There are " + totalCount + " cards you can choose from.");
+			System.out.print("Which one do you like[0-" + (totalCount - 1) + "]: ");
+			whichCard = Integer.parseInt(scanner.nextLine());
+		}
+		return whichCard;
 	}
 }

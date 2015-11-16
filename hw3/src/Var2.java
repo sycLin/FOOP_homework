@@ -11,17 +11,21 @@ public class Var2 extends OldMaidGame {
 	public Var2() {
 		this.playerCount = 6;
 		initDeck();
-		initPlayers();
+		initPlayers(false);
 	}
 
 	/**
 	 * Constructor 2: given number of players
 	 * @param playerNum how many players
+	 * @param human set to true if 1 human player; false if all AI.
 	 */
-	public Var2(int playerNum) {
-		this.playerCount = playerNum;
+	public Var2(int playerNum, boolean human) {
+		if(playerNum <= 0) // using default
+			this.playerCount = 6;
+		else
+			this.playerCount = playerNum;
 		initDeck();
-		initPlayers();
+		initPlayers(human);
 	}
 
 	/**
