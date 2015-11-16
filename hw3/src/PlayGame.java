@@ -349,6 +349,15 @@ class Deck {
 	}
 
 	/**
+	 * add all the cards in the given ArrayList of Card class
+	 * @param cards an ArrayList of cards to add
+	 * @return true if succeeded; false if failed.
+	 */
+	public boolean addAll(ArrayList<Card> cards) {
+		return this.cards.addAll(cards);
+	}
+
+	/**
 	 * get the card at the given index
 	 * @param index which card to get
 	 * @return the card wanted
