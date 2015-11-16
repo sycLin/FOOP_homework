@@ -32,5 +32,6 @@ public class Var2 extends OldMaidGame {
 		this.deck = new Deck();
 		Deck anotherDeck = new Deck();
 		this.deck.addAll(anotherDeck.cards);
+		this.deck.removeCard("C", "Q"); // remove a Club Q
 	}
 }

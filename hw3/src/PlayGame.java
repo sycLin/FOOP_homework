@@ -26,7 +26,8 @@ public class PlayGame {
 				letsPlayVar1.start();
 				break;
 			case 2:
-				System.out.println("not implemented yet...");
+				Var2 letsPlayVar2 = new Var2();
+				letsPlayVar2.start();
 				break;
 		}
 	}
