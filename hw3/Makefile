@@ -1,7 +1,7 @@
 all:
 	if ! [ -d "bin" ]; then mkdir bin; fi
-	javac -d bin/ src/PlayGame.java
-	javadoc -d doc/ src/PlayGame.java
+	javac -d bin/ src/PlayGame.java src/Var1.java
+	javadoc -package -d doc/ src/*.java
 run:
 	java -cp bin/ PlayGame
 clean:
