@@ -48,7 +48,7 @@ public class POOCasino {
 	/**
 	 * store the hand of dealer
 	 */
-	private static ArrayList<Card> dealers_cards;
+	private static CompositeHand dealers_hand;
 
 	/**
 	 * form an ArrayList of Hands to represent the current table
@@ -59,7 +59,7 @@ public class POOCasino {
 		for(int i=0; i<players_hands.size(); i++) {
 			if(players_hands.get(i).playerIndex != perspective) {
 				// add the opened hand to _ret_
-				ret.add(players_hands.get(i).face_up_cards);
+				ret.add(players_hands.get(i).face_up_hand);
 			}
 		}
 		return ret;
@@ -107,7 +107,6 @@ public class POOCasino {
 		/* step 3: main while-loop for rounds */
 		while(current_round < total_round) {
 			// initialize some variables
-			dealers_cards = new ArrayList<Card>();
 			players_hands = new ArrayList<CompositeHand>();
 			int[] bets = new int[player_count];
 			boolean[] buy_insurance = new boolean[player_count];
@@ -116,8 +115,9 @@ public class POOCasino {
 			for(int i=0; i<player_count; i++)
 				bets[i] = players.get(i).make_bet(last_table, player_count, i);
 			// 4-2: assign the initial 2 cards to each player and the dealer
-			dealers_cards.add(officialDeck.getNextCard()); // the face-down one
-			dealers_cards.add(officialDeck.getNextCard()); // the face-up one
+			// 4-2-1: dealer
+			dealers_hand = new CompositeHand(-1, officialDeck.getNextCard(), officialDeck.getNextCard());
+			// 4-2-2: players
 			for(int i=0; i<player_count; i++) {
 				ArrayList<Card> up = new ArrayList<Card>();
 				ArrayList<Card> down = new ArrayList<Card>();
@@ -130,9 +130,9 @@ public class POOCasino {
 			}
 			// 4-3: if dealer's face-up card is ACE, ask player buy_insurance() or not
 			for(int i=0; i<player_count; i++) {
-				if(dealers_cards.get(1).getValue() == 1) {
-					Card my_open = players_hands.get(i).face_up_cards;
-					Card dealer_open = dealers_cards.get(1);
+				if(dealers_hand.face_up_hand.getCards().get(0).getValue() == 1) {
+					Card my_open = players_hands.get(i).face_up_hand.getCards().get(0);
+					Card dealer_open = dealers_hand.face_up_hand.getCards().get(0);
 					ArrayList<Hand> current_table = getCurrentTable(i); // perspective == i
 					buy_insurance[i] = players.get(i).buy_insurance(my_open, dealer_open, current_table);
 				} else {
@@ -140,18 +140,18 @@ public class POOCasino {
 				}
 			}
 			// 4-4: if dealer not blackjack, ask player do_surrender() or not
-			boolean dealer_is_blackjack = false;
-			if(dealers_cards.get(0).getValue() == 1 && dealers_cards.get(1).getValue() >= 10 && dealers_cards.get(1).getValue() <= 13)
-				dealer_is_blackjack = true;
-			if(dealers_cards.get(0).getValue() >= 10 && dealers_cards.get(0).getValue() <= 13 && dealers_cards.get(1).getValue() == 1)
-				dealer_is_blackjack = true;
+			dealers_hand.sneakPeakEvaluate();
+			boolean dealer_is_blackjack = dealers_hand.isBlackJack;
 			for(int i=0; i<player_count; i++) {
 				if(!dealer_is_blackjack) {
-					Card my_open = players_hands.get(i).face_up_cards;
-					Card dealer_open = dealers_cards.get(1);
+					// dealer doesn't get blackjack, prepare the parameters
+					Card my_open = players_hands.get(i).face_up_hand.getCards().get(0);
+					Card dealer_open = dealers_hand.face_up_hand.getCards().get(0);
 					ArrayList<Hand> current_table = getCurrentTable(i); // perspective == i
-					surrender_or_not[i] = players.get(i).do_surrender(/* ... */);
+					// ask the player
+					surrender_or_not[i] = players.get(i).do_surrender(my_open, dealer_open, current_table);
 				} else {
+					// dealer gets blackjack
 					surrender_or_not[i] = false;
 				}
 			}
@@ -162,56 +162,346 @@ public class POOCasino {
 					// flip up the face-down card
 					players_hands.get(i).flipUp();
 					// determine whether to split
-					// determine whether to double down
-					// determine whether to hit / stand
-				}
-			}
-			for(int i=0; i<player_count; i++) {
-				if(surrender_or_not[i] == false) {
-					// flip up the face-down card
-					// determine whether to split
-					boolean toSplit = false;
-					if(players_card.get(i).get(0).get(0).getValue() == players_card.get(i).get(0).get(1).getValue()) {
-						// do_split(ArrayList<Card> my_open, Card dealer_open, ArrayList<Hand> current_table)
-						toSplit = players.get(i).do_split(players_card.get(i).get(0), dealers_cards.get(1), current_table);
+					if(players_hands.get(i).canSplit()) {
+						// prepare the parameter for asking player whether to split or not
+						ArrayList<Card> my_open = players_hands.get(i).face_up_hand.getCards();
+						Card dealer_open = dealers_hand.face_up_hand.getCards().get(0);
+						ArrayList<Hand> current_table = getCurrentTable(pIndex); // perspective == pIndex
+						if(players.get(pIndex).do_split(my_open, dealer_open, current_table)) {
+							// SPLIT!!
+							CompositeHand new_hand = players_hands.get(i).splitSelf();
+							// add to players_hands at the next index
+							players_hands.add(i+1, new_hand);
+						}
 					}
 					// determine whether to double down
+					if(players_hands.get(i).canDoubleDown()) {
+						// prepare the parameter for asking player whether to double down or not
+						Hand my_open = players_hands.get(i).face_up_hand;
+						Card dealer_open = dealers_hand.face_up_hand.getCards().get(0);
+						ArrayList<Hand> current_table = getCurrentTable(pIndex); // perspective == pIndex
+						if(players.get(pIndex).do_double(my_open, dealer_open, current_table)) {
+							// DOUBLE DOWN!
+							// double the bet
+							bets[pIndex] = bets[pIndex] * 2;
+							// stand after receiving exactly 1 card
+							players_hands.get(i).addCard(officialDeck.getNextCard());
+							continue;
+						}
+					}
 					// determine whether to hit / stand
+					Hand my_open = players_hands.get(i).face_up_hand;
+					Card dealer_open = dealers_hand.face_up_hand.getCards().get(0);
+					ArrayList<Hand> current_table = getCurrentTable(pIndex);
+					while(players_hands.get(i).evaluate() <= 21 && players.get(pIndex).hit_me(my_open, dealer_open, current_table)) {
+						// give him/her a new card
+						players_hands.get(i).addCard(officialDeck.getNextCard());
+						// update
+						my_open = players_hands.get(i).face_up_hand;
+						current_table = getCurrentTable(pIndex);
+					}
 				}
 			}
+
 			// 4-6: dealer action
+			dealers_hand.flipUp();
+			int value = dealers_hand.evaluate();
+			while(value <= 16 || (value == 17 && dealers_hand.isSoft)) {
+				// draw
+				dealers_hand.addCard(officialDeck.getNextCard());
+				value = dealers_hand.evaluate();
+			}
+
 			// 4-7: comparing the results
+			for(int i=0; i<players_hands.size(); i++) {
+				int value = players_hands.get(i).evaluate();
+				int pIndex = players_hands.get(i).playerIndex;
+				if(surrender_or_not[playerIndex]) {
+					// player surrenders
+					players.get(playerIndex).decrease_chips((1/2) * bets[playerIndex]);
+				} else if(players_hands.get(i).evaluate() > 21) {
+					// busted
+					players.get(playerIndex).decrease_chips(bets[playerIndex]);
+				} else if(dealers_hand.isBlackJack && players_hands.get(i).isBlackJack) {
+					// both dealer and player got BlackJack
+					// ...
+				} else if(players_hands.get(i).isBlackJack) {
+					// player got BlackJack, dealer not.
+					// ...
+				} else if(dealers_hand.evaluate() > 21) {
+					// dealer busted
+					// ...
+				} else if(dealers_hand.isBlackJack) {
+					// dealer BlackJack, player didn't
+					if(buy_insurance[playerIndex]) {
+						// player bought an insurance
+						// ...
+					} else {
+						// player didn't buy insurance
+						// ...
+					}
+				} else {
+					// neither of them got busted or BlackJack
+					int dealer_value = dealers_hand.evaluate();
+					if(value > dealer_value) {
+						// player gets more
+						// ...
+					} else if(value < dealer_value) {
+						// dealer gets more value
+						// ...
+					} else {
+						// a push (same value)
+						// ...
+					}
+				}
+			}
 
 			// last thing: record all the cards on the table of this round
 			// ...
-			currnet_round += 1;
+			current_round += 1;
 		}
 		
 	}
 
 	private static class CompositeHand {
-		public Hand face_up_cards;
-		public Hand face_down_cards;
+
+		/**
+		 * storing face-up cards in a Hand instance
+		 */
+		public Hand face_up_hand;
+
+		/**
+		 * storing face-down cards in a Hand instance
+		 */
+		public Hand face_down_hand;
+
+		/**
+		 * indicating which player owns this CompositeHand instance
+		 * -1 means not set or dealer.
+		 */
 		public int playerIndex;
 
+		/**
+		 * whether the result of evaluate() is a soft value.
+		 */
+		public boolean isSoft;
+
+		/**
+		 * whether the result of evaluate() is a BlackJack
+		 */
+		public boolean isBlackJack;
+
+		/**
+		 * Constructor
+		 */
 		public CompositeHand() {
 			playerIndex = -1;
+			isSoft = false;
+			isBlackJack = false;
 		}
 
+		/**
+		 * constructor
+		 * @param pIndex indicating which player owns this CompositeHand
+		 * @param face_down a Hand instance for face-down cards for initialization
+		 * @param face_up a Hand instance for face-up cards for initialization
+		 */
 		public CompositeHand(int pIndex, Hand face_down, Hand face_up) {
-			face_down_cards = face_down;
-			face_up_cards = face_up;
+			face_down_hand = face_down;
+			face_up_hand = face_up;
 			playerIndex = pIndex;
+			isSoft = false;
+			isBlackJack = false;
 		}
 
+		/**
+		 * constructor
+		 * @param pIndex indicating which player owns this CompositeHand
+		 * @param face_down a card to initialize the face_down_hand
+		 * @param face_up a card to initialize the face_up_hand
+		 */
+		public CompositeHand(int pIndex, Card face_down, Card face_up) {
+			ArrayList<Card> tmp = new ArrayList<Card>();
+			tmp.add(face_down);
+			face_down_hand = new Hand(tmp);
+			tmp.clear();
+			tmp.add(face_up);
+			face_up_hand = new Hand(tmp);
+			playerIndex = pIndex;
+			isSoft = false;
+			isBlackJack = false;
+		}
+
+		/**
+		 * to flip up all the face-down cards
+		 */
 		public void flipUp() {
-			ArrayList<Card> to_move = face_down_cards.getCards();
-			ArrayList<Card> to_add_to = face_up_cards.getCards();
+			ArrayList<Card> to_move = face_down_hand.getCards();
+			ArrayList<Card> to_add_to = face_up_hand.getCards();
 			for(int i=0; i<to_move.size(); i++) {
 				to_add_to.add(to_move.get(i));
 			}
-			face_up_cards = new Hand(to_add_to);
-			face_down_cards.clear();
+			face_up_hand = new Hand(to_add_to);
+			to_move.clear();
+			face_down_hand = new Hand(to_move);
+		}
+
+		/**
+		 * to check whether this CompositeHand can be splitted
+		 * @return true if can be splitted; otherwise, false.
+		 */
+		public boolean canSplit() {
+			System.out.println("face_up_hand.getCards().size() = " + face_up_hand.getCards().size());
+			System.out.println("card at position 0 = " + face_up_hand.getCards().get(0));
+			System.out.println("card at position 1 = " + face_up_hand.getCards().get(1));
+			// check the number of cards
+			if(face_up_hand.getCards().size() != 2 || face_down_hand.getCards().size() != 0)
+				return false;
+			// check the value
+			int v1 = -1, v2 = -1;
+			try {
+				v1 = face_up_hand.getCards().get(0).getValue();
+			} catch(Exception e) {
+				System.out.println("v1 error.");
+				return false;
+			}
+			try {
+				v2 = face_up_hand.getCards().get(1).getValue();
+			} catch(Exception e) {
+				System.out.println("v2 error.");
+				return false;
+			}
+			if(v1 == v2)
+				return true;
+			return false;
+		}
+
+		/**
+		 * to split a CompositeHand into 2
+		 * @return a new CompositeHand instance resulted from splitting
+		 */
+		public CompositeHand splitSelf() {
+			// just a normal checking
+			if(!canSplit())
+				return null;
+			/* split the hand */
+			// 1) handle the face-up cards splitting
+			ArrayList<Card> o_up_cards = face_up_hand.getCards(); // original face-up cards
+			ArrayList<Card> n_up_cards = new ArrayList<Card>();
+			n_up_cards.add(o_up_cards.get(1)); // new face-up cards
+			o_up_cards.remove(1);
+			// 2) update the original face-up hand
+			face_up_hand = new Hand(o_up_cards);
+			// 3) create a new CompositeHand instance for splitted hand
+			ArrayList<Card> dCards = new ArrayList<Card>(); // for dummy face-down hand
+			Hand dHand = new Hand(dCards);
+			Hand uHand = new Hand(n_up_cards); // create face-up hand from new face-up cards
+			CompositeHand new_composite_hand = new CompositeHand(playerIndex, dHand, uHand);
+			return new_composite_hand;
+		}
+
+		/**
+		 * to check whether this CompositeHand can be double-downed
+		 * @return true if positive; otherwise, false.
+		 */
+		public boolean canDoubleDown() {
+			// if the player didn't split
+			int count = 0;
+			for(int i=0; i<players_hands.size(); i++) {
+				if(players_hands.get(i).playerIndex == playerIndex)
+					count += 1;
+			}
+			if(count == 1)
+				return true;
+			return false;
+		}
+
+		/**
+		 * to add a card to face_up_hand
+		 * @param c the card to add to face_up_hand
+		 */
+		public void addCard(Card c) {
+			ArrayList<Card> cards = face_up_hand.getCards();
+			cards.add(c);
+			face_up_hand = new Hand(cards);
+		}
+
+		/**
+		 * to evaluate the total points of face_up_hand
+		 * @return an integer, the total value of face_up_hand
+		 */
+		public int evaluate() {
+			int ret = 0;
+			int ace_as_one = 0;
+			int ace_as_eleven = 0;
+			ArrayList<Card> cards = face_up_hand.getCards();
+			for(int i=0; i<cards.size(); i++) {
+				int tmp = cards.get(i).getValue();
+				// face cards are all counted as 10
+				if(tmp >= 10 && tmp <= 13)
+					tmp = 10;
+				// record if ACE is encountered
+				if(tmp == 1)
+					ace_as_one += 1;
+				// add up "ret"
+				ret += tmp;
+			}
+			while(ace_as_one >= 1 && ret + 10 <= 21) {
+				// enter loop if:
+				// 1) still some ACE's counted as 1, and
+				// 2) won't be busted after adding 10 points
+				ace_as_one -= 1;
+				ace_as_eleven += 1;
+				ret += 10;
+			}
+			// fill in the "isSoft" instance variable
+			if(ace_as_one >= 1) {
+				// there's still one or more ACE's counted as 1
+				isSoft = true;
+			}
+			// fill in the "isBlackJack" instance variable
+			if(cards.size() == 2 && ret == 21 && ace_as_eleven == 1) {
+				isBlackJack = true;
+			}
+			return ret;
+		}
+
+		/**
+		 * to evaluate the total points of both face_up_hand and face_down_hand
+		 * @return an integer, the total value
+		 */
+		public int sneakPeakEvaluate() {
+			int ret = 0;
+			int ace_as_one = 0;
+			int ace_as_eleven = 0;
+			ArrayList<Card> up_cards = face_up_hand.getCards();
+			ArrayList<Card> down_cards = face_down_hand.getCards();
+			for(int i=0; i<up_cards.size(); i++) {
+				int tmp = up_cards.get(i).getValue();
+				if(tmp >= 10 && tmp <= 13)
+					tmp = 10;
+				if(tmp == 1)
+					ace_as_one += 1;
+				ret += tmp;
+			}
+			for(int i=0; i<down_cards.size(); i++) {
+				int tmp = down_cards.get(i).getValue();
+				if(tmp >= 10 && tmp <= 13)
+					tmp = 10;
+				if(tmp == 1)
+					ace_as_one += 1;
+				ret += tmp;
+			}
+			while(ace_as_one >= 1 && ret + 10 <= 21) {
+				ace_as_one -= 1;
+				ace_as_eleven += 1;
+				ret += 10;
+			}
+			if(ace_as_one >= 1)
+				isSoft = true;
+			if((up_cards.size() + down_cards.size()) == 2 && ret == 21 && ace_as_eleven == 1)
+				isBlackJack = true;
+			return ret;
 		}
 	}
 
