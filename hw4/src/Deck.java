@@ -67,8 +67,10 @@ class Deck {
 	 */
 	public Card getNextCard() {
 		// handling exception
-		if(remainingCount() <= 0)
-			return null;
+		if(remainingCount() <= 0) {
+			shuffle();
+			current_index = 0;
+		}
 		// return the desired card increase the counter
 		return cards.get(current_index++);
 	}
