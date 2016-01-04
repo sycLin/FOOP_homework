@@ -66,6 +66,38 @@ public class POOCasino {
 	}
 
 	/**
+	 * print the status of all the players to stdout
+	 */
+	private static void printAllPlayerStatus() {
+		String s = "";
+		for(int i=0; i<player_count; i++) {
+			s += "Player " + i + ": " + players.get(i).toString() + "\n";
+		}
+		System.out.println(s);
+	}
+
+	/**
+	 * print the hands of all the players to stdout
+	 */
+	private static void printAllPlayerHands() {
+		String s = "";
+		for(int i=0; i<players_hands.size(); i++) {
+			int pIndex = players_hands.get(i).playerIndex;
+			s += "Player " + pIndex + "'s hand: " + players_hands.get(i) + "\n";
+		}
+		System.out.println(s);
+	}
+
+	/**
+	 * print the hand of the dealer to stdout
+	 */
+	private static void printDealerHand() {
+		String s = "";
+		s += "Dealer's hand: " + dealers_hand + "\n";
+		System.out.println(s);
+	}
+
+	/**
 	 * This is the main function
 	 * @param argv the command-line arguments, array of string.
 	 */
@@ -102,6 +134,11 @@ public class POOCasino {
 		officialDeck = new Deck();
 		officialDeck.open();
 		officialDeck.shuffle();
+
+
+		// output the status of all players before game started
+		System.out.println("/---------- Before Game Started ----------/");
+		printAllPlayerStatus();
 
 
 		/* step 3: main while-loop for rounds */
@@ -214,51 +251,115 @@ public class POOCasino {
 
 			// 4-7: comparing the results
 			for(int i=0; i<players_hands.size(); i++) {
-				int value = players_hands.get(i).evaluate();
+				value = players_hands.get(i).evaluate();
 				int pIndex = players_hands.get(i).playerIndex;
-				if(surrender_or_not[playerIndex]) {
+				if(surrender_or_not[pIndex]) {
 					// player surrenders
-					players.get(playerIndex).decrease_chips((1/2) * bets[playerIndex]);
+					try {
+						players.get(pIndex).decrease_chips((1/2) * bets[pIndex]);
+					} catch(Player.NegativeException e) {
+						System.out.println("negative exception caught when decreasing chips for player: " + pIndex);
+					} catch(Player.BrokeException e) {
+						System.out.println("broke exception caught when decreasing chips for player: " + pIndex);
+					}
 				} else if(players_hands.get(i).evaluate() > 21) {
-					// busted
-					players.get(playerIndex).decrease_chips(bets[playerIndex]);
+					// player busted
+					try {
+						players.get(pIndex).decrease_chips(bets[pIndex]);
+					} catch(Player.NegativeException e) {
+						System.out.println("negative exception caught when decreasing chips for player: " + pIndex);
+					} catch(Player.BrokeException e) {
+						System.out.println("broke exception caught when decreasing chips for player: " + pIndex);
+					}
 				} else if(dealers_hand.isBlackJack && players_hands.get(i).isBlackJack) {
 					// both dealer and player got BlackJack
-					// ...
+					// "push": player gets no more chips
 				} else if(players_hands.get(i).isBlackJack) {
 					// player got BlackJack, dealer not.
-					// ...
+					// player gets (3/2)*B more chips
+					try {
+						players.get(pIndex).increase_chips((3/2) * bets[pIndex]);
+					} catch(Player.NegativeException e) {
+						System.out.println("negative exception caught when increasing chips for player: " + pIndex);
+					}
 				} else if(dealers_hand.evaluate() > 21) {
 					// dealer busted
-					// ...
+					try {
+						players.get(pIndex).increase_chips(bets[pIndex]);
+					} catch(Player.NegativeException e) {
+						System.out.println("negative exception caught when increaseing chips for player: " + pIndex);
+					}
 				} else if(dealers_hand.isBlackJack) {
 					// dealer BlackJack, player didn't
-					if(buy_insurance[playerIndex]) {
+					if(buy_insurance[pIndex]) {
 						// player bought an insurance
-						// ...
+						// making it even
 					} else {
 						// player didn't buy insurance
-						// ...
+						try {
+							players.get(pIndex).decrease_chips(bets[pIndex]);
+						} catch(Player.NegativeException e) {
+							System.out.println("negatice exception caught when decreasing chips for player: " + pIndex);
+						} catch(Player.BrokeException e) {
+							System.out.println("broke exception caught when decreasing chips for player: " + pIndex);
+						}
 					}
 				} else {
 					// neither of them got busted or BlackJack
 					int dealer_value = dealers_hand.evaluate();
 					if(value > dealer_value) {
 						// player gets more
-						// ...
+						// player gets B more chips
+						try {
+							players.get(pIndex).increase_chips(bets[pIndex]);
+						} catch(Player.NegativeException e) {
+							System.out.println("negatice exception caught when increasing chips for player: " + pIndex);
+						}
 					} else if(value < dealer_value) {
 						// dealer gets more value
-						// ...
+						// bet goes to casino
+						try {
+							players.get(pIndex).decrease_chips(bets[pIndex]);
+						} catch(Player.NegativeException e) {
+							System.out.println("negative exception caught when decreasing chips for player: " + pIndex);
+						} catch(Player.BrokeException e) {
+							System.out.println("broke exception caught when decreasing chips for player: " + pIndex);
+						}
 					} else {
 						// a push (same value)
-						// ...
+						// player gets no more chips
 					}
 				}
+				// subtract the insurance amount
+				if(buy_insurance[pIndex])
+					try {
+						players.get(pIndex).decrease_chips((1/2) * bets[pIndex]);
+					} catch(Player.NegativeException e) {
+						System.out.println("negative exception caught when decreasing chips for player: " + pIndex);
+					} catch(Player.BrokeException e) {
+						System.out.println("broke exception caught when decreasing chips for player: " + pIndex);
+					}
 			}
 
 			// last thing: record all the cards on the table of this round
-			// ...
+			// set perpective to -100, so dealer's hand and all players' hands will be recorded
+			// (-1 for dealer, 0 ~ player_count-1 for players)
+			last_table = getCurrentTable(-100);
 			current_round += 1;
+
+			// output the status of all players after each round
+			System.out.println("/---------- After Round" + current_round + " ----------/");
+			// print the dealer's hand
+			printDealerHand();
+			// print all players' hands
+			printAllPlayerHands();
+			// print the bets
+			String bets_string = "";
+			for(int i=0; i<player_count; i++)
+				bets_string += (bets[i] + " ");
+			System.out.println(bets_string + "\n");
+			// print the players' status
+			printAllPlayerStatus();
 		}
 		
 	}
@@ -351,9 +452,6 @@ public class POOCasino {
 		 * @return true if can be splitted; otherwise, false.
 		 */
 		public boolean canSplit() {
-			System.out.println("face_up_hand.getCards().size() = " + face_up_hand.getCards().size());
-			System.out.println("card at position 0 = " + face_up_hand.getCards().get(0));
-			System.out.println("card at position 1 = " + face_up_hand.getCards().get(1));
 			// check the number of cards
 			if(face_up_hand.getCards().size() != 2 || face_down_hand.getCards().size() != 0)
 				return false;
@@ -501,6 +599,64 @@ public class POOCasino {
 				isSoft = true;
 			if((up_cards.size() + down_cards.size()) == 2 && ret == 21 && ace_as_eleven == 1)
 				isBlackJack = true;
+			return ret;
+		}
+
+		/**
+		 * to show the hand
+		 * @return a string representing the hand
+		 */
+		@Override
+		public String toString() {
+			String ret = "";
+			// 1) the face_down_hand
+			ArrayList<Card> d_cards = face_down_hand.getCards();
+			for(int i=0; i<d_cards.size(); i++) {
+				ret += "[**] ";
+			}
+			// 2) the face_up_hand
+			ArrayList<Card> u_cards = face_up_hand.getCards();
+			for(int i=0; i<u_cards.size(); i++) {
+				ret += "[";
+				// dealing with suit
+				switch(u_cards.get(i).getSuit()) {
+					case 4:
+						ret += "C"; // club
+						break;
+					case 3:
+						ret += "D"; // diamond
+						break;
+					case 2:
+						ret += "H"; // heart
+						break;
+					case 1:
+						ret += "S"; // spade
+						break;
+					default:
+						ret += "."; // unknown
+				}
+				// dealing with value (rank)
+				switch(u_cards.get(i).getValue()) {
+					case 13:
+						ret += "K"; // king
+						break;
+					case 12:
+						ret += "Q"; // queen
+						break;
+					case 11:
+						ret += "J"; // jack
+						break;
+					case 10:
+						ret += "T"; // ten
+						break;
+					case 1:
+						ret += "A"; // ace
+						break;
+					default:
+						ret += ("" + u_cards.get(i).getValue());
+				}
+				ret += "] ";
+			}
 			return ret;
 		}
 	}
