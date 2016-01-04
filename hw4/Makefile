@@ -3,9 +3,9 @@ all:
 	javac -d bin/ src/*.java -cp lib/
 #	javadoc -package -d doc/ src/*.java
 run:
-	java -cp bin/:lib/ foop.POOCasino 10 5566 foop.PlayerB01902044 foop.PlayerB01902078 foop.PlayerB01902044 foop.PlayerB01902078 2>/dev/null
+	java -cp bin/:lib/ foop.POOCasino 2000 5566 foop.PlayerB01902044 foop.PlayerB01902078 foop.PlayerB01902044 foop.PlayerB01902078 2>/dev/null
 run-dev:
-	java -cp bin/:lib/ foop.POOCasino 10 5566 foop.PlayerB01902044 foop.PlayerB01902078 foop.PlayerB01902044 foop.PlayerB01902078
+	java -cp bin/:lib/ foop.POOCasino 2000 5566 foop.PlayerB01902044 foop.PlayerB01902078 foop.PlayerB01902044 foop.PlayerB01902078
 clean:
 	rm -rf doc/
 	rm -rf bin/

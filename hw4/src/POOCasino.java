@@ -553,7 +553,7 @@ public class POOCasino {
 				ret += 10;
 			}
 			// fill in the "isSoft" instance variable
-			if(ace_as_one >= 1) {
+			if(ace_as_eleven >= 1) {
 				// there's still one or more ACE's counted as 1
 				isSoft = true;
 			}
@@ -595,7 +595,7 @@ public class POOCasino {
 				ace_as_eleven += 1;
 				ret += 10;
 			}
-			if(ace_as_one >= 1)
+			if(ace_as_eleven >= 1)
 				isSoft = true;
 			if((up_cards.size() + down_cards.size()) == 2 && ret == 21 && ace_as_eleven == 1)
 				isBlackJack = true;
