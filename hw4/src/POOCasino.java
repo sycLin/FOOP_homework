@@ -71,7 +71,7 @@ public class POOCasino {
 	private static void printAllPlayerStatus() {
 		String s = "";
 		for(int i=0; i<player_count; i++) {
-			s += "Player " + i + ": " + players.get(i).toString() + "\n";
+			s += "Player " + i + ": " + players.get(i).toString() + " (" + players.get(i).get_chips() + ")\n";
 		}
 		System.out.println(s);
 	}
