@@ -354,7 +354,7 @@ public class POOCasino {
 			// print all players' hands
 			printAllPlayerHands();
 			// print the bets
-			String bets_string = "";
+			String bets_string = "Players' bets are: ";
 			for(int i=0; i<player_count; i++)
 				bets_string += (bets[i] + " ");
 			System.out.println(bets_string + "\n");
